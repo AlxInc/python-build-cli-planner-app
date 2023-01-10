@@ -5,25 +5,38 @@ from datetime import datetime
 
 class DeadlinedMetaReminder(Iterable, metaclass=ABCMeta):
 
-    def __iter__(self, text, date):
-        formatted_date = self.date.isoformat()
-        self.text = iter([text, formatted_date])
+
     @abstractmethod
     def is_due(self):
         pass
 
 
 
-class DeadLinedReminder(Iterable, ABC):
+class DeadlinedReminder(ABC, Iterable):
+
+    @classmethod
+    def __subclasshook__(cls, subclass):
+        if cls is not DeadlinedReminder:
+            return NotImplemented
+
+        def attr_in_hierachy(attr):
+            return any(attr in SuperClass.__dict__ for SuperClass in subclass.__mro__)
+
+        if not all(attr_in_hierachy(attr) for attr in ('__iter__', 'is_due')):
+            return NotImplemented
+
+        return True
     @abstractmethod
     def is_due(self):
         pass
 
-class DateReminder(DeadLinedReminder):
+class DateReminder(DeadlinedReminder):
     def __init__(self, text, date):
         self.date = parse(date, dayfirst=True)
         self.text = text
 
     def is_due(self):
-        if self.date <= datetime.now():
-            pass
+        return self.date <= datetime.now()
+
+    def __iter__(self):
+        return iter([self.text, self.date.isoformat()])
